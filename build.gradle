@@ -1,0 +1,59 @@
+group 'com.amadornes.modcast.bot'
+version '1.0-SNAPSHOT'
+
+
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath 'com.github.rholder:gradle-one-jar:1.0.4'
+	}
+}
+apply plugin: 'java'
+apply plugin: 'scala'
+apply plugin: 'application'
+apply plugin: 'gradle-one-jar'
+
+mainClassName = 'com.amadornes.modcast.bot.Main'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+	jcenter()
+	maven {
+		url "https://jitpack.io"
+	}
+}
+
+dependencies {
+	compile 'org.scala-lang:scala-library:2.11.8'
+	compile 'com.typesafe.akka:akka-actor_2.11:2.4.12'
+	compile 'com.typesafe.akka:akka-http_2.11:3.0.0-RC1'
+	compile "com.github.austinv11:Discord4j:2.6.1"
+	compile "com.typesafe:config:1.3.1"
+	compile "org.clapper:grizzled-slf4j_2.11:1.2.0"
+	compile 'org.slf4j:slf4j-simple:1.7.21'
+	compile 'com.github.scopt:scopt_2.11:3.5.0'
+	compile 'org.sorm-framework:sorm:0.3.16'
+	compile 'com.h2database:h2:1.4.193'
+	compile 'org.scalaj:scalaj-http_2.11:2.3.0'
+	testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+//As it turns out, gradle is an idiot that can't parse version ranges
+// and keeps insisting on using the (beta) 2.12.0 scala version which is only supported by one library.
+configurations.all {
+	resolutionStrategy {
+		force 'org.scala-lang:scala-library:2.11.8'
+		force 'org.scala-lang:scala-reflect:2.11.8'
+		force 'org.scala-lang:scala-compiler:2.11.8'
+	}
+}
+
+task executableJar(type: OneJar) {
+	mainClass = mainClassName
+	archiveName = 'modbot.jar'
+}

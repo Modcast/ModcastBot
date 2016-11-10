@@ -1,0 +1,8 @@
+.idea/
+.gradle
+build/
+atlassian-ide-plugin.xml
+run/
+
+#Excluding experimental patches to discord4j
+src/main/java/sx/
