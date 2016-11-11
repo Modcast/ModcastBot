@@ -1,11 +1,10 @@
 package com.amadornes.modcast.bot.discord.commands
 
 import com.amadornes.modcast.bot.Configuration
-import com.amadornes.modcast.bot.database.{DB, EpisodeGuest, EpisodeRole, Permission}
+import com.amadornes.modcast.bot.database._
 import com.amadornes.modcast.bot.discord.{AbstractCommand, TCommandOptions}
-import com.amadornes.modcast.bot.helpers.{MCWhitelistHelper, PermissionsHelper, StreamKeyHelper}
-import sx.blah.discord.handle.obj.{IGuild, IRole, IUser}
-import sx.blah.discord.util.RoleBuilder
+import com.amadornes.modcast.bot.helpers.{GuestHelper, PermissionsHelper, StreamKeyHelper}
+import sx.blah.discord.handle.obj.IUser
 
 /**
   * Created by rewbycraft on 11/2/16.
@@ -21,55 +20,27 @@ class GuestCommand extends AbstractCommand[GuestCommand.Options] {
 						.whereEqual("episode", arguments.episode).exists())
 						c.respond("User is already featuring in this episode!")
 					else {
-						val role = getEpisodeRoll(arguments.episode, channel.getGuild)
-						arguments.user.addRole(role)
 						
-						DB.save(EpisodeGuest(arguments.episode, channel.getGuild.getID, arguments.user.getID))
+						GuestHelper.addGuest(arguments.user, arguments.episode, channel.getGuild)
 						
-						PermissionsHelper.upgradeUserPermissionLevel(arguments.user, Permission.GUEST)
 						sendWelcomeMessage(arguments.user, arguments.episode)
 						
 						c.respond("User added to episode.")
 					}
 				
 				case "del" =>
-					val entry = DB.query[EpisodeGuest]
+					if (!DB.query[EpisodeGuest]
 						.whereEqual("guild", channel.getGuild.getID)
 						.whereEqual("user", arguments.user.getID)
-						.whereEqual("episode", arguments.episode).fetchOne()
-					if (entry.isEmpty)
+						.whereEqual("episode", arguments.episode).exists())
 						c.respond("User is not in this episode!")
 					else {
-						DB.delete(entry.get)
-						arguments.user.removeRole(getEpisodeRoll(arguments.episode, channel.getGuild))
-						
-						if (!DB.query[EpisodeGuest].whereEqual("user", arguments.user.getID).exists()) {
-							//User is not in any episode anymore. Let's clean up some stuff.
-							
-							//If the user is *only* a guest, erase their permissions and stream key.
-							if (PermissionsHelper.getUserPermissionLevel(arguments.user) == Permission.GUEST) {
-								PermissionsHelper.setUserPermissionLevel(arguments.user, Permission.NONE)
-								StreamKeyHelper.removeUserStreamKey(arguments.user)
-								MCWhitelistHelper.deassociateMCAccountWithUser(arguments.user)
-							}
-						}
-						
+						GuestHelper.delGuest(arguments.user, arguments.episode, channel.getGuild)
 						c.respond("User removed from episode.")
 					}
 				
 				case "purge" =>
-					val query = DB.query[EpisodeGuest].whereEqual("guild", channel.getGuild.getID).whereEqual("user", arguments.user.getID)
-					query.fetch().foreach(g => {
-						arguments.user.removeRole(getEpisodeRoll(g.episode, channel.getGuild))
-						DB.delete(g)
-					})
-					
-					//If the user is *only* a guest, erase their permissions and stream key.
-					if (PermissionsHelper.getUserPermissionLevel(arguments.user) == Permission.GUEST) {
-						PermissionsHelper.setUserPermissionLevel(arguments.user, Permission.NONE)
-						StreamKeyHelper.removeUserStreamKey(arguments.user)
-						MCWhitelistHelper.deassociateMCAccountWithUser(arguments.user)
-					}
+					GuestHelper.delAllEpisodes(arguments.user, channel.getGuild)
 					
 					c.respond("User removed from all episodes.")
 				
@@ -118,23 +89,6 @@ class GuestCommand extends AbstractCommand[GuestCommand.Options] {
 	}
 	
 	override def permissionLevel: Permission = Permission.ADMIN
-	
-	private def getEpisodeRoll(episode: Int, guild: IGuild): IRole = {
-		val roleObject = DB.query[EpisodeRole].whereEqual("guild", guild.getID).whereEqual("episode", episode).fetchOne()
-		if (roleObject.isDefined)
-			return guild.getRoleByID(roleObject.get.role)
-		
-		//Create the roll if it does not exist
-		val roleBuilder = new RoleBuilder(guild)
-		roleBuilder.withName("Episode " + episode)
-		roleBuilder.setHoist(true)
-		roleBuilder.setMentionable(true)
-		val role = roleBuilder.build()
-		
-		DB.save(EpisodeRole(episode, guild.getID, role.getID))
-		
-		role
-	}
 	
 	private def sendWelcomeMessage(user: IUser, episode: Int): Unit = {
 		user.getOrCreatePMChannel().sendMessage(

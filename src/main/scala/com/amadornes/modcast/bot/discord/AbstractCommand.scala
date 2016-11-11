@@ -18,11 +18,13 @@ trait TCommandOptions
 /**
   * Created by rewbycraft on 11/4/16.
   */
-abstract class AbstractCommand[OptionType <: TCommandOptions: ClassTag] extends Actor {
+abstract class AbstractCommand[OptionType <: TCommandOptions : ClassTag] extends Actor {
 	
 	import CommandMessages._
 	
 	implicit private var client: IDiscordClient = _
+	
+	protected def discordClient = client
 	
 	override def receive: Receive = {
 		case Startup(c) =>
@@ -58,9 +60,9 @@ abstract class AbstractCommand[OptionType <: TCommandOptions: ClassTag] extends 
 	
 	def newConfig: OptionType = {
 		def findGoodConstructor(cz: Class[_]): Constructor[_] = {
-			val ctors = cz.getConstructors.sortBy(_.getParameterTypes.size)
+			val ctors = cz.getConstructors.sortBy(_.getParameterTypes.length)
 			
-			if (ctors.head.getParameterTypes.size == 0) {
+			if (ctors.head.getParameterTypes.length == 0) {
 				// use no arg ctor
 				ctors.head
 			} else {
@@ -82,6 +84,7 @@ abstract class AbstractCommand[OptionType <: TCommandOptions: ClassTag] extends 
 					throw new InstantiationException(s"$cz must have a no arg constructor or all args must be defaulted")
 			}
 		}
+		
 		val clazz = classTag[OptionType].runtimeClass
 		val constructor = findGoodConstructor(clazz)
 		val defaultValues = getConstructorDefaultArguments(clazz, constructor)
@@ -111,6 +114,8 @@ abstract class AbstractCommand[OptionType <: TCommandOptions: ClassTag] extends 
 		implicit def channelRead: Read[IChannel] = Read.reads {
 			DiscordUtils.parseChannelMention(_)(client)
 		}
+		
+		implicit def permissionRead: Read[Permission] = Read.reads(Permission.parsePermission)
 		
 		override def showUsageOnError: Boolean = false
 		

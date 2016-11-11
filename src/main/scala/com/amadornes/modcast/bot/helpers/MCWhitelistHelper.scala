@@ -34,6 +34,6 @@ object MCWhitelistHelper {
 		val http = Http("http://mcapi.ca/profile/" + URLEncoder.encode(name)).asString
 		if (http.code != 200)
 			throw new IllegalArgumentException()
-		new Gson().fromJson(http.body, classOf[JsonObject]).get("uuid").getAsString
+		new Gson().fromJson(http.body, classOf[JsonObject]).get("uuid_formatted").getAsString
 	}
 }

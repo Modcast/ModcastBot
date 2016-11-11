@@ -22,4 +22,12 @@ public enum Permission {
 				return permission;
 		return null;
 	}
+	
+	public static Permission parsePermission(String str) {
+		for (Permission p : values())
+			if (str.equalsIgnoreCase(String.valueOf(p.getLevel())) || p.toString().equalsIgnoreCase(str))
+				return p;
+		
+		return null;
+	}
 }

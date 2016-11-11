@@ -10,6 +10,7 @@ object DB extends Instance(
 	entities = Set(
 		Entity[EpisodeRole](),
 		Entity[EpisodeGuest](),
+		Entity[EpisodeChannel](),
 		Entity[StreamKey](),
 		Entity[UserPermission](),
 		Entity[UserMCAccount]()
@@ -22,6 +23,7 @@ object DB extends Instance(
 
 case class EpisodeRole(episode: Int, guild: String, role: String)
 case class EpisodeGuest(episode: Int, guild: String, user: String)
+case class EpisodeChannel(episode: Int, guild: String, channel: String)
 case class StreamKey(user: String, key: String, name: String)
 case class UserPermission(user: String, permission: Int)
 case class UserMCAccount(user: String, account: String)

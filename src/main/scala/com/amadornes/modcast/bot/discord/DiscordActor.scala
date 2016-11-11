@@ -50,7 +50,10 @@ class DiscordActor extends Actor with Logging {
 						if (parts(0).equals(s"<@${client.getOurUser.getID}>"))
 							parts(1)
 						else if (message.getMessage.getChannel.isPrivate)
-							parts(0)
+							if (parts(0).startsWith("!"))
+								parts(0).substring(1)
+							else
+								parts(0)
 						else
 							parts(0).substring(1)
 					}
